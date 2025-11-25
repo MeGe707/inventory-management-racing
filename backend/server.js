@@ -7,7 +7,7 @@ import adminRouter from "./routes/adminRouter.js";
 import cookieParser from "cookie-parser";
 
 const app = express();
-const port = process.env.port || 5000;
+const port = process.env.PORT || 5000;
 
 connectDB();
 
@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cors({
-  origin: "https://inventory-management-racing-j2he.onrender.com",  // ← Vite kullanıyorsan bu port doğrudur
+  origin: "https://inventory-management-racing-j2he.onrender.com",
   credentials: true
 }));
 
