@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cors({
-  origin: "http://localhost:5173",  // ← Vite kullanıyorsan bu port doğrudur
+  origin: "https://inventory-management-racing-j2he.onrender.com",  // ← Vite kullanıyorsan bu port doğrudur
   credentials: true
 }));
 
