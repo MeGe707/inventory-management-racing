@@ -17,7 +17,7 @@ const AppContextProvider = (props) => {
   const [role, setRole] = useState(
     localStorage.getItem("role") ? localStorage.getItem("role") : ""
   );
-  const link = "http://localhost:5000";
+  const link = "https://inventory-management-racing.onrender.com";
 
   axios.defaults.withCredentials = true;
 
