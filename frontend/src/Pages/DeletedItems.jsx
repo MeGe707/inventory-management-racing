@@ -1,7 +1,7 @@
 // Pages/DeletedItems.jsx
 import React, { useEffect, useContext, useState } from "react";
 import { AppContext } from "../Context/AppContext.jsx";
-import ThrashItemModal from "../Components/ThrashItemModal.jsx";
+import ThrashItemModal from "../Components/thrashItemModal.jsx"
 import { toast } from "react-toastify";
 import axios from "axios";
 
