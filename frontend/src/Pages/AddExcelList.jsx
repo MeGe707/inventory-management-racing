@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import axios from "axios";
 import { AppContext } from "../Context/AppContext.jsx";
 import { FaFileExcel } from "react-icons/fa"; // Excel ikon
+import { toast } from "react-hot-toast";
 
 
 const AddExcelList = () => {
@@ -82,7 +83,7 @@ const AddExcelList = () => {
       </button>
 
        <a
-        href="excelsablon.xlsx"
+        href="stokformat.xlsx"
         download
         className="mt-4 w-full inline-block text-center bg-gray-100 hover:bg-gray-200 text-blue-700 font-medium py-2 rounded border border-blue-300 transition-all"
       >

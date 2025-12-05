@@ -11,8 +11,15 @@ const COMPONENT_OPTIONS = [
   "Connector",
   "Resistor",
   "Transistor",
-  "TVS DIODE",
-  "ZENER DIODE",
+  "TVS Diode",
+  "Schottky Diode",
+  "Mosfet",
+  "Zener Diode",
+  "Crimp",
+  "Relay",
+  "Switch",
+  "Microcontroller",
+  "Cable",
   "OTHER",
 ];
 
@@ -61,8 +68,10 @@ export default function AddItem() {
     supplierName: "",
     serialNumber: "",
     quantity: 1,
+    threshold: 0,
     price: 0,
     location: "",
+    isFrequentlyUsed: false,
     description: "",
   });
 
@@ -94,10 +103,8 @@ export default function AddItem() {
       }
     });
 
-    if (Number(form.quantity) < 1)
-      e.quantity = "Quantity must be at least 1.";
-    if (Number(form.price) < 0)
-      e.price = "Price cannot be less than 0.";
+    if (Number(form.quantity) < 1) e.quantity = "Quantity must be at least 1.";
+    if (Number(form.price) < 0) e.price = "Price cannot be less than 0.";
     if (!form.component) e.component = "This field is required.";
 
     setErrors(e);
@@ -128,7 +135,9 @@ export default function AddItem() {
       supplierName: "",
       serialNumber: "",
       quantity: 1,
+      threshold: 0,
       price: 0,
+      isFrequentlyUsed: false,
       location: "",
       description: "",
     });
@@ -147,7 +156,9 @@ export default function AddItem() {
         supplierName: form.supplierName.trim(),
         serialNumber: form.serialNumber.trim(),
         quantity: Number(form.quantity),
+        threshold: Number(form.threshold),
         price: Number(form.price),
+        isFrequentlyUsed: form.isFrequentlyUsed,
         location: form.location.trim(),
         description: form.description.trim(),
       };
@@ -165,7 +176,8 @@ export default function AddItem() {
     } catch (err) {
       console.error(err);
       toast.error(
-        err.response?.data?.message || "An error occurred while adding the item."
+        err.response?.data?.message ||
+          "An error occurred while adding the item."
       );
     } finally {
       setSubmitting(false);
@@ -320,6 +332,43 @@ export default function AddItem() {
                 onChange={onChange("quantity")}
                 placeholder="1"
                 min={1}
+                step={1}
+                required
+                error={errors.quantity}
+              />
+            </div>
+
+            <div className="flex items-center mt-6">
+              <input
+                id="isFrequentlyUsed"
+                type="checkbox"
+                checked={form.isFrequentlyUsed}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    isFrequentlyUsed: e.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <label
+                htmlFor="isFrequentlyUsed"
+                className="ml-2 text-sm font-medium text-gray-700"
+              >
+                Frequently Used
+              </label>
+            </div>
+
+            <div>
+              <Label htmlFor="threshold" required>
+                Threshold
+              </Label>
+              <NumberInput
+                id="threshold"
+                value={form.threshold}
+                onChange={onChange("threshold")}
+                placeholder="0"
+                min={0}
                 step={1}
                 required
                 error={errors.quantity}

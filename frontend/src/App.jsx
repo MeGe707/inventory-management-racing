@@ -18,6 +18,7 @@ import Admins from './Pages/Admins.jsx'
 import LogsPage from './Pages/LogsPage.jsx'
 import ItemLogsPage from './Pages/ItemLogsPage.jsx'
 import EmailVerificationPage from './Pages/EmailVerificationPage.jsx'
+import FrequentlyUsedItems from './Pages/FrequentlyUsedItems.jsx'
 
 
 function App() {
@@ -44,7 +45,9 @@ function App() {
               <Route path='/admins' element={<Admins/>}></Route>
               <Route path='/logs' element={<LogsPage></LogsPage>}/>
                <Route path="/item-logs/:itemId" element={<ItemLogsPage />} />
+               <Route path='/frequently-used-items-list' element={<FrequentlyUsedItems></FrequentlyUsedItems>}/>
                <Route path="email-verification" element={<EmailVerificationPage/>}/>
+
             </Routes>
           </ProtectedRoute> 
 

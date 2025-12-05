@@ -1,11 +1,13 @@
-import React, { useEffect, useContext, useState } from "react";
+// src/Pages/FrequentlyUsedItems.jsx
+
+import React, { useEffect, useContext, useState, useMemo } from "react";
 import { AppContext } from "../Context/AppContext.jsx";
 import ItemModal from "../Components/ItemModal.jsx";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
 import axios from "axios";
 
-export default function AllItems() {
+export default function FrequentlyUsedItems() {
   const { token, getAllItems, items, moveItemToThrashBox, link } =
     useContext(AppContext);
 
@@ -18,20 +20,31 @@ export default function AllItems() {
 
   const [selectedIds, setSelectedIds] = useState([]);
 
+  // ✅ Sadece frequently used item'ları baz alan liste
+  const baseItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.isFrequentlyUsed === true || item.frequentlyUsedItems === true
+      ),
+    [items]
+  );
+
   useEffect(() => {
     if (token) getAllItems();
   }, [token]);
 
   useEffect(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return setFilteredItems(items);
+    if (!q) return setFilteredItems(baseItems);
+
     setFilteredItems(
-      items.filter((item) => {
+      baseItems.filter((item) => {
         const val = String(item[searchField] || "").toLowerCase();
         return val.includes(q);
       })
     );
-  }, [items, searchField, searchQuery]);
+  }, [baseItems, searchField, searchQuery]);
 
   const handleQuantityChange = async (itemId, newQty) => {
     if (newQty < 0) return;
@@ -54,47 +67,6 @@ export default function AllItems() {
       }
     } catch (err) {
       console.error("Backend error:", err);
-    }
-  };
-
-  const handleToggleFrequentlyUsed = async (item) => {
-    if (!token) return;
-
-    const newVal = !item.isFrequentlyUsed;
-
-    setFilteredItems((prev) =>
-      prev.map((it) =>
-        it._id === item._id ? { ...it, isFrequentlyUsed: newVal } : it
-      )
-    );
-
-    try {
-      const { data } = await axios.post(
-        `${link}/user/update-item`,
-        { itemId: item._id, isFrequentlyUsed: newVal },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!data.success) {
-        toast.error(data.message || "Could not update favorite flag.");
-        setFilteredItems((prev) =>
-          prev.map((it) =>
-            it._id === item._id
-              ? { ...it, isFrequentlyUsed: item.isFrequentlyUsed }
-              : it
-          )
-        );
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error while updating favorite.");
-      setFilteredItems((prev) =>
-        prev.map((it) =>
-          it._id === item._id
-            ? { ...it, isFrequentlyUsed: item.isFrequentlyUsed }
-            : it
-        )
-      );
     }
   };
 
@@ -172,12 +144,12 @@ export default function AllItems() {
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "SelectedItems");
-    XLSX.writeFile(workbook, "selected_items.xlsx");
+    XLSX.writeFile(workbook, "frequently_used_items.xlsx");
   };
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4">
-      <p className="mb-4 mt-3 text-2xl font-medium">All Items</p>
+      <p className="mb-4 mt-3 text-2xl font-medium">Frequently Used Items</p>
 
       <div className="flex items-center gap-2 mb-4">
         {/* 🔽 BURASI GÜNCELLENDİ */}
@@ -233,7 +205,7 @@ export default function AllItems() {
         )}
       </div>
 
-      <div className="hidden sm:grid grid-cols-[0.5fr_0.5fr_3fr_1fr_2fr_2fr_2fr_2fr_1fr_1fr] py-3 px-6 border-b font-semibold text-gray-700">
+      <div className="hidden sm:grid grid-cols-[0.5fr_0.5fr_3fr_1fr_2fr_2fr_2fr_2fr_1fr] py-3 px-6 border-b font-semibold text-gray-700">
         <input
           type="checkbox"
           checked={isAllSelected}
@@ -246,15 +218,14 @@ export default function AllItems() {
         <p className="text-center ml-12">Location</p>
         <p className="text-center">Added By</p>
         <p className="text-center mr-5">Last Updated</p>
-        <p className="text-center">Fav</p>
         <p className="text-center">Actions</p>
       </div>
 
-      <div className="bg-white border-rounded text-sm max-h-[80vh] min--[60vh] overflow-y-scroll">
+      <div className="bg-white rounded text-sm max-h-[80vh] min-h-[60vh] overflow-y-scroll">
         {filteredItems.map((item, index) => (
           <div
             key={item._id}
-            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_0.5fr_3.3fr_1fr_2fr_2fr_2fr_2fr_1fr_1fr] items-center text-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
+            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_0.5fr_2.5fr_1.2fr_1.8fr_1.5fr_1.5fr_1.5fr_1fr] items-center text-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
           >
             <input
               type="checkbox"
@@ -283,30 +254,14 @@ export default function AllItems() {
               </button>
             </p>
 
-            <p className="ml-6" onClick={() => handleItemClick(item)}>
-              {item.brandName}
-            </p>
-            <p className="ml-9" onClick={() => handleItemClick(item)}>
-              {item.location}
-            </p>
+            <p onClick={() => handleItemClick(item)}>{item.brandName}</p>
+            <p onClick={() => handleItemClick(item)}>{item.location}</p>
             <p className="text-xs" onClick={() => handleItemClick(item)}>
               {item.addedBy}
             </p>
             <p className="text-xs" onClick={() => handleItemClick(item)}>
               {item.lastUpdatedOn || "—"}
             </p>
-            <button
-              type="button"
-              onClick={() => handleToggleFrequentlyUsed(item)}
-              className={`ml-5 hover:text-yellow-600 ${
-                item.isFrequentlyUsed
-                  ? "text-yellow-500 text-xl"
-                  : "text-gray-400 text-xl"
-              }`}
-            >
-              {item.isFrequentlyUsed ? "★" : "☆"}
-            </button>
-
             <div className="flex gap-2 items-center justify-end">
               <button
                 type="button"
@@ -320,7 +275,7 @@ export default function AllItems() {
         ))}
         {filteredItems.length === 0 && (
           <p className="text-center text-gray-500 p-4">
-            No items match your search.
+            No frequently used items found.
           </p>
         )}
       </div>

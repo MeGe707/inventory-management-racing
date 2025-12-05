@@ -114,6 +114,7 @@ export default function ThrashItemModal({ itemId, onClose, onRecovered, onDelete
               ["Serial Number", thrashItemData.serialNumber],
               ["Location", thrashItemData.location],
               ["Quantity", thrashItemData.quantity],
+              ["Threshold", thrashItemData.threshold],
               ["Price", thrashItemData.price ? `${thrashItemData.price} $` : "—"],
               ["Description", thrashItemData.description],
               ["Deleted By", thrashItemData.deletedBy],
