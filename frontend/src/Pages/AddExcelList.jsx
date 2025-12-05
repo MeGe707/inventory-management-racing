@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import axios from "axios";
 import { AppContext } from "../Context/AppContext.jsx";
 import { FaFileExcel } from "react-icons/fa"; // Excel ikon
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 
 
 const AddExcelList = () => {
