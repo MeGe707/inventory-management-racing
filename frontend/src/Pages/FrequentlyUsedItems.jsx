@@ -1,5 +1,4 @@
 // src/Pages/FrequentlyUsedItems.jsx
-
 import React, { useEffect, useContext, useState, useMemo } from "react";
 import { AppContext } from "../Context/AppContext.jsx";
 import ItemModal from "../Components/ItemModal.jsx";
@@ -20,7 +19,7 @@ export default function FrequentlyUsedItems() {
 
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // ✅ Sadece frequently used item'ları baz alan liste
+  // ✅ Only frequently used items
   const baseItems = useMemo(
     () =>
       items.filter(
@@ -70,6 +69,47 @@ export default function FrequentlyUsedItems() {
     }
   };
 
+  const handleToggleFrequentlyUsed = async (item) => {
+    if (!token) return;
+
+    const newVal = !item.isFrequentlyUsed;
+
+    setFilteredItems((prev) =>
+      prev.map((it) =>
+        it._id === item._id ? { ...it, isFrequentlyUsed: newVal } : it
+      )
+    );
+
+    try {
+      const { data } = await axios.post(
+        `${link}/user/update-item`,
+        { itemId: item._id, isFrequentlyUsed: newVal },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!data.success) {
+        toast.error(data.message || "Could not update favorite flag.");
+        setFilteredItems((prev) =>
+          prev.map((it) =>
+            it._id === item._id
+              ? { ...it, isFrequentlyUsed: item.isFrequentlyUsed }
+              : it
+          )
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error while updating favorite.");
+      setFilteredItems((prev) =>
+        prev.map((it) =>
+          it._id === item._id
+            ? { ...it, isFrequentlyUsed: item.isFrequentlyUsed }
+            : it
+        )
+      );
+    }
+  };
+
   const handleItemClick = (item) => {
     setSelectedItem(item);
     setIsModalOpen(true);
@@ -90,11 +130,8 @@ export default function FrequentlyUsedItems() {
     filteredItems.length > 0 && selectedIds.length === filteredItems.length;
 
   const toggleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(filteredItems.map((item) => item._id));
-    }
+    if (isAllSelected) setSelectedIds([]);
+    else setSelectedIds(filteredItems.map((item) => item._id));
   };
 
   const handleExport = () => {
@@ -103,7 +140,8 @@ export default function FrequentlyUsedItems() {
       return;
     }
 
-    const selectedItems = items.filter((item) =>
+    // ✅ export only selected from baseItems
+    const selectedItems = baseItems.filter((item) =>
       selectedIds.includes(item._id)
     );
 
@@ -131,7 +169,7 @@ export default function FrequentlyUsedItems() {
         "Supplier Name": supplierName,
         "Serial Number": serialNumber,
         Quantity: quantity,
-        Price: price,
+        Price: price, 
         Location: location,
         Description: description,
         "Added On": addedOn,
@@ -143,7 +181,7 @@ export default function FrequentlyUsedItems() {
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "SelectedItems");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "FrequentlyUsedItems");
     XLSX.writeFile(workbook, "frequently_used_items.xlsx");
   };
 
@@ -152,7 +190,6 @@ export default function FrequentlyUsedItems() {
       <p className="mb-4 mt-3 text-2xl font-medium">Frequently Used Items</p>
 
       <div className="flex items-center gap-2 mb-4">
-        {/* 🔽 BURASI GÜNCELLENDİ */}
         <select
           value={searchField}
           onChange={(e) => setSearchField(e.target.value)}
@@ -163,6 +200,7 @@ export default function FrequentlyUsedItems() {
           <option value="brandName">Brand</option>
           <option value="supplierName">Supplier</option>
           <option value="serialNumber">Part Number</option>
+          <option value="description">Description</option>
           <option value="addedBy">Added By</option>
           <option value="lastUpdatedBy">Last Updated By</option>
         </select>
@@ -183,6 +221,7 @@ export default function FrequentlyUsedItems() {
             >
               Export to Excel
             </button>
+
             <button
               onClick={async () => {
                 if (
@@ -205,74 +244,93 @@ export default function FrequentlyUsedItems() {
         )}
       </div>
 
-      <div className="hidden sm:grid grid-cols-[0.5fr_0.5fr_3fr_1fr_2fr_2fr_2fr_2fr_1fr] py-3 px-6 border-b font-semibold text-gray-700">
+      {/* HEADER (same as AllItems) */}
+      <div className="hidden sm:grid grid-cols-[40px_50px_240px_136px_0.7fr_120px_70px] py-3 px-6 border-b font-semibold text-gray-700 items-center justify-items-center">
         <input
           type="checkbox"
           checked={isAllSelected}
           onChange={toggleSelectAll}
         />
-        <p className="text-center">#</p>
-        <p className="text-center">Item Name</p>
-        <p className="text-center ml-5">Qty</p>
-        <p className="text-center ml-14">Brand</p>
-        <p className="text-center ml-12">Location</p>
-        <p className="text-center">Added By</p>
-        <p className="text-center mr-5">Last Updated</p>
-        <p className="text-center">Actions</p>
+        <p>#</p>
+        <p>Item Name</p>
+        <p>Qty</p>
+        <p className="ml-20">Description</p>
+        <p className="ml-56">Location</p>
+        <p className="ml-52">Fav</p>
       </div>
 
-      <div className="bg-white rounded text-sm max-h-[80vh] min-h-[60vh] overflow-y-scroll">
+      <div className="bg-white border-rounded text-sm max-h-[80vh] min--[60vh] overflow-y-scroll">
         {filteredItems.map((item, index) => (
           <div
             key={item._id}
-            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_0.5fr_2.5fr_1.2fr_1.8fr_1.5fr_1.5fr_1.5fr_1fr] items-center text-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
+            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[40px_50px_240px_140px_1fr_120px_70px] items-center py-3 px-6 border-b hover:bg-gray-50 text-gray-500"
           >
             <input
               type="checkbox"
               checked={selectedIds.includes(item._id)}
               onChange={() => toggleSelectItem(item._id)}
+              className="justify-self-center"
             />
-            <p className="max-sm:hidden">{index + 1}</p>
-            <p onClick={() => handleItemClick(item)}>{item.name}</p>
-            <p className="flex items-center justify-center gap-1">
+
+            <p className="max-sm:hidden justify-self-center">{index + 1}</p>
+
+            <p
+              onClick={() => handleItemClick(item)}
+              className="cursor-pointer justify-self-center text-center"
+            >
+              {item.name}
+            </p>
+
+            <p className="flex items-center justify-center gap-1 justify-self-center">
               <button
                 onClick={() =>
                   handleQuantityChange(item._id, item.quantity - 1)
                 }
-                className="w-6 h-6 flex items-center justify-center rounded bg-red-100 text-red-600 hover:bg-red-200 text-xs font-bold"
+                className="w-6 h-6 flex items-center justify-center rounded bg-red-100 text-red-600 hover:bg-red-200 text-sm font-bold"
               >
                 −
               </button>
-              <span className="w-6 text-center text-sm">{item.quantity}</span>
+              <span className="w-8 text-center text-sm">{item.quantity}</span>
               <button
                 onClick={() =>
                   handleQuantityChange(item._id, item.quantity + 1)
                 }
-                className="w-6 h-6 flex items-center justify-center rounded bg-green-100 text-green-600 hover:bg-green-200 text-xs font-bold"
+                className="w-6 h-6 flex items-center justify-center rounded bg-green-100 text-green-600 hover:bg-green-200 text-sm font-bold"
               >
                 +
               </button>
             </p>
 
-            <p onClick={() => handleItemClick(item)}>{item.brandName}</p>
-            <p onClick={() => handleItemClick(item)}>{item.location}</p>
-            <p className="text-xs" onClick={() => handleItemClick(item)}>
-              {item.addedBy}
+            <p
+              className="text-xs text-left cursor-pointer ml-12 leading-5"
+              onClick={() => handleItemClick(item)}
+              title={item.description || ""}
+            >
+              {item.description || "—"}
             </p>
-            <p className="text-xs" onClick={() => handleItemClick(item)}>
-              {item.lastUpdatedOn || "—"}
+
+            <p
+              className="cursor-pointer justify-self-center text-center"
+              onClick={() => handleItemClick(item)}
+            >
+              {item.location}
             </p>
-            <div className="flex gap-2 items-center justify-end">
-              <button
-                type="button"
-                onClick={() => moveItemToThrashBox([item._id])}
-                className="text-red-500 hover:text-red-700"
-              >
-                Delete
-              </button>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => handleToggleFrequentlyUsed(item)}
+              className={`justify-self-center hover:text-yellow-600 ${
+                item.isFrequentlyUsed
+                  ? "text-yellow-500 text-xl"
+                  : "text-gray-400 text-xl"
+              }`}
+              title="Toggle favorite"
+            >
+              {item.isFrequentlyUsed ? "★" : "☆"}
+            </button>
           </div>
         ))}
+
         {filteredItems.length === 0 && (
           <p className="text-center text-gray-500 p-4">
             No frequently used items found.
