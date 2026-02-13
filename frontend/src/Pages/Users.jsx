@@ -3,39 +3,35 @@ import axios from "axios";
 import { AppContext } from "../Context/AppContext";
 import AddUserModal from "../Components/addUserModal.jsx";
 import { toast } from "react-toastify";
+import { useAuthStore } from "../Context/authStore.js";
 
 export default function Users() {
-  const { token, link } = useContext(AppContext);
+  const { link } = useContext(AppContext);
   const [users, setUsers] = useState([]);
 
   const [searchField, setSearchField] = useState("name");
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
-  
-  
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-   const fetchUsers = async () => {
-      try {
-        const res = await axios.get( `${link}/user/getAllUsers`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get(`${link}/user/getAllUsers`);
 
-        const onlyUsers = res.data.data.filter((u) => u.role === "user");
-        setUsers(onlyUsers);
-      } catch (error) {
-        console.error("Fetch error:", error);
-      }
-    };
-  // Kullanıcıları getir
+      const onlyUsers = res.data.data.filter((u) => u.role === "user");
+      setUsers(onlyUsers);
+    } catch (error) {
+      console.error("Fetch error:", error);
+    }
+  };
+
   useEffect(() => {
-   
-
-    if (token) fetchUsers();
-  }, [token]);
+    if (isAuthenticated) {
+      fetchUsers();
+    }
+  }, [isAuthenticated]);
 
   // Arama filtresi
   useEffect(() => {
@@ -45,7 +41,7 @@ export default function Users() {
       users.filter((user) => {
         const val = String(user[searchField] || "").toLowerCase();
         return val.includes(q);
-      })
+      }),
     );
   }, [users, searchField, searchQuery]);
 
@@ -71,15 +67,7 @@ export default function Users() {
     if (!window.confirm("Bu kullanıcıyı silmek istediğine emin misin?")) return;
 
     try {
-      const res = await axios.post(
-         `${link}/admin/deleteUser`,
-        { id: userId }, // JSON formatta body
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await axios.post(`${link}/admin/deleteUser`, { id: userId });
 
       if (res.data.success) {
         fetchUsers(); // Kullanıcıları tekrar getir

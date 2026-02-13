@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { AppContext } from "../Context/AppContext";
 
 export default function AddAdminModal({ onClose, defaultRole = "admin" }) {
-  const { token, link } = useContext(AppContext);
+  const { link } = useContext(AppContext);
 
   
 
@@ -31,12 +31,7 @@ export default function AddAdminModal({ onClose, defaultRole = "admin" }) {
 
       const { data } = await axios.post(
         `${link}/admin/register-admin`,
-        adminData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        adminData
       );
 
       if (data.success) {

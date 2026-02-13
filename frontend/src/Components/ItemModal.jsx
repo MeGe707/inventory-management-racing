@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function ItemModal({ itemId, onClose }) {
   const navigate = useNavigate();
-  const { getItem, itemData, setItemData, moveItemToThrashBox, token, link } =
+  const { getItem, itemData, setItemData, moveItemToThrashBox, link } =
     useContext(AppContext);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -34,9 +34,7 @@ export default function ItemModal({ itemId, onClose }) {
         description: itemData.description || "",
       };
 
-      const { data } = await axios.post(`${link}/user/update-item`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.post(`${link}/user/update-item`, payload);
 
       if (data.success) {
         await getItem(itemId); // Güncellenen veriyi tekrar çek

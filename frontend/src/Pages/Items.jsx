@@ -4,10 +4,13 @@ import ItemModal from "../Components/ItemModal.jsx";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { useAuthStore } from "../Context/authStore.js";
 
 export default function AllItems() {
-  const { token, getAllItems, items, moveItemToThrashBox, link } =
+  const { getAllItems, items, moveItemToThrashBox, link } =
     useContext(AppContext);
+
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [searchField, setSearchField] = useState("name");
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,9 +21,12 @@ export default function AllItems() {
 
   const [selectedIds, setSelectedIds] = useState([]);
 
-  useEffect(() => {
-    if (token) getAllItems();
-  }, [token]);
+useEffect(() => {
+  if (isAuthenticated) {
+    getAllItems();
+  }
+}, [isAuthenticated]);
+
 
   useEffect(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -46,8 +52,7 @@ export default function AllItems() {
     try {
       const { data } = await axios.post(
         `${link}/user/update-item`,
-        { itemId, quantity: newQty },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { itemId, quantity: newQty }
       );
 
       if (!data.success) {
@@ -72,8 +77,7 @@ export default function AllItems() {
     try {
       const { data } = await axios.post(
         `${link}/user/update-item`,
-        { itemId: item._id, isFrequentlyUsed: newVal },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { itemId: item._id, isFrequentlyUsed: newVal }
       );
 
       if (!data.success) {

@@ -18,9 +18,7 @@ export default function ItemLogsPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const res = await axios.get( `${link}/user/get-logs`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get( `${link}/user/get-logs`);
 
         const filteredLogs = res.data.data.filter(
           (log) => log.targetId === itemId

@@ -59,7 +59,7 @@ const NumberInput = (props) => (
 );
 
 export default function AddItem() {
-  const { token, link } = useContext(AppContext);
+  const { link } = useContext(AppContext);
 
   const [form, setForm] = useState({
     name: "",
@@ -163,9 +163,7 @@ export default function AddItem() {
         description: form.description.trim(),
       };
 
-      const { data } = await axios.post(`${link}/user/add-item`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.post(`${link}/user/add-item`, payload);
 
       if (data?.success) {
         toast.success(data.message || "Item added successfully.");

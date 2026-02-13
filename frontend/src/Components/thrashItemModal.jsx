@@ -13,7 +13,7 @@ export default function ThrashItemModal({ itemId, onClose, onRecovered, onDelete
       const { data } = await axios.post(
         `${link}/user/get-thrash-item`,
         { itemId: id },
-        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+
       );
       if (data.success) setThrashItemData(data.item);
       else toast.error(data.message);
@@ -33,7 +33,7 @@ export default function ThrashItemModal({ itemId, onClose, onRecovered, onDelete
       const { data } = await axios.post(
         `${link}/admin/permanently-delete-items`,
         { itemIds: ids },
-        { headers: { Authorization: `Bearer ${token}` } }
+ 
       );
 
       if (data.success) {
@@ -58,8 +58,8 @@ export default function ThrashItemModal({ itemId, onClose, onRecovered, onDelete
 
       const { data } = await axios.post(
         `${link}/user/recover-thrash-item`,
-        { thrashItemIds: ids },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { thrashItemIds: ids }
+      
       );
 
       if (data.success) {

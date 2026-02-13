@@ -9,41 +9,40 @@ import jwt from "jsonwebtoken";
 import ActionLog from "../models/actionModel.js";
 import deletedItemModel from "../models/deletedItemModel.js";
 import mongoose from "mongoose";
+import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
+
 
 
 // ------------------------ SUPER ADMIN LOGIN ------------------------
+
 export const superAdminLogin = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ message: "Please provide all fields" });
+    return res.status(400).json({
+      success: false,
+      message: "Please provide all fields",
+    });
   }
 
   if (
     email !== process.env.SUPERADMIN_EMAIL ||
     password !== process.env.SUPERADMIN_PASSWORD
   ) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({
+      success: false,
+      message: "Invalid credentials",
+    });
   }
 
-  const token = jwt.sign(
-    {
-      id: "00000",
-      email,
-      role: "superadmin",
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "30d" }
-  );
+  generateTokenAndSetCookie(res, "00000", email, "superadmin");
 
   res.status(200).json({
-    message: "Superadmin login successful",
-    token: token,
-    role: "superadmin",
     success: true,
+    message: "Superadmin login successful",
+    role: "superadmin",
   });
 };
-
 
 // ------------------------ REGISTER ADMIN ------------------------
 export const registerAdmin = async (req, res) => {
@@ -100,29 +99,26 @@ export const adminLogin = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ message: "Please provide all fields" });
+    return res.status(400).json({
+      success: false,
+      message: "Please provide all fields",
+    });
   }
 
   const user = await userModel.findOne({ email });
 
   if (!user || user.role !== "admin" || user.password !== password) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({
+      success: false,
+      message: "Invalid credentials",
+    });
   }
 
-  const token = jwt.sign(
-    {
-      id: user._id,
-      email: user.email,
-      role: user.role,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "30d" }
-  );
+  generateTokenAndSetCookie(res, user._id, user.email, user.role);
 
   res.status(200).json({
-    message: "Admin login successful",
     success: true,
-    token: token,
+    message: "Admin login successful",
     role: user.role,
   });
 };

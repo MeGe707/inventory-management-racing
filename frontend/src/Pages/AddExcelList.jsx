@@ -27,12 +27,7 @@ const AddExcelList = () => {
 
       const response = await axios.post(
          `${link}/user/upload-excel-items`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        formData
       );
 
       setMessage(response.data.message || "✅ Update successful");

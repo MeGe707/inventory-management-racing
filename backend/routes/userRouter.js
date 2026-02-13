@@ -16,8 +16,10 @@ import {
   getThrashItem,
   moveItemsToTrash,
   recoverThrashItems,
+  logout,
+  checkAuth,
 } from "../controllers/userController.js";
-import authUser from "../middleware/authUser.js";
+
 import { superAdminLogin } from "../controllers/adminController.js"
 import { allowRoles } from "../middleware/allowRoles.js";
 
@@ -42,6 +44,11 @@ userRouter.post('/move-to-thrash-box', allowRoles("user", "admin", "superadmin")
 userRouter.post('/recover-thrash-item', allowRoles("user", "admin", "superadmin"), recoverThrashItems)
 userRouter.post('/get-thrash-items', allowRoles("user", "admin", "superadmin"), getthrashItems)
 userRouter.post('/get-thrash-item', allowRoles("user", "admin", "superadmin"), getThrashItem)
+
+userRouter.post('/logout', allowRoles("user", "admin", "superadmin"), logout)
+
+userRouter.post('/check-auth', checkAuth)
+
 
 
 

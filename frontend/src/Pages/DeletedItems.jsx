@@ -4,16 +4,23 @@ import { AppContext } from "../Context/AppContext.jsx";
 import ThrashItemModal from "../Components/thrashItemModal.jsx"
 import { toast } from "react-toastify";
 import axios from "axios";
+import { useAuthStore } from "../Context/authStore.js";
 
 export default function DeletedItems() {
-  const { token, thrashItems, getthrashItems, link } = useContext(AppContext);
+  const { thrashItems, getthrashItems, link } = useContext(AppContext);
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [modalItemId, setModalItemId] = useState(null);
 
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+
   useEffect(() => {
-    if (token) getthrashItems();
-  }, [token]);
+  if (isAuthenticated) {
+    getthrashItems();
+  }
+}, [isAuthenticated]);
+
 
   const handleCheckboxChange = (itemId) => {
     setSelectedIds((prev) =>
@@ -43,8 +50,7 @@ export default function DeletedItems() {
     try {
       const { data } = await axios.post(
         `${link}/admin/permanently-delete-items`,
-        { itemIds: selectedIds },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { itemIds: selectedIds }
       );
       if (data.success) {
         toast.success(
@@ -65,8 +71,7 @@ export default function DeletedItems() {
     try {
       const { data } = await axios.post(
         `${link}/user/recover-thrash-item`,
-        { thrashItemIds: selectedIds },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { thrashItemIds: selectedIds }
       );
       if (data.success) {
         toast.success(
