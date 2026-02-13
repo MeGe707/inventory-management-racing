@@ -1,14 +1,18 @@
-import { useContext } from "react";
-import {Navigate} from "react-router-dom";
-import { AppContext } from "./AppContext.jsx";
-import React from 'react'
+import { Navigate } from "react-router-dom";
+import { useAuthStore } from "./authStore.js";
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, isCheckingAuth } = useAuthStore();
 
-const ProtectedRoute = ({children}) => {
-    const {token} = useContext(AppContext);
-    if (!token) {
-        return <Navigate to="/login" replace={true} />
-    }
+  if (isCheckingAuth) {
+    return null; // veya spinner
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
-}
+};
 
-export default ProtectedRoute
+
+export default ProtectedRoute;

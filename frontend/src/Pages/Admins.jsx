@@ -3,24 +3,24 @@ import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../Context/AppContext";
 import AddAdminModal from "../Components/addAdminModal";
 import { toast } from "react-toastify";
+import { useAuthStore } from "../Context/authStore.js";
+
 
 export default function Admins() {
-  const { token, link } = useContext(AppContext);
+  const { link } = useContext(AppContext);
   const [admins, setAdmins] = useState([]);
 
   const [searchField, setSearchField] = useState("name");
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredAdmins, setFilteredAdmins] = useState([]);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchAdmins = async () => {
     try {
-      const res = await axios.get(`${link}/admin/getAllAdmins`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await axios.get(`${link}/admin/getAllAdmins`);
 
       const onlyAdmins = res.data.data.filter((u) => u.role === "admin");
       setAdmins(onlyAdmins);
@@ -35,12 +35,7 @@ export default function Admins() {
     try {
       const res = await axios.post(
         `${link}/admin/deleteAdmin`,
-        { id: adminId }, // send as JSON body
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { id: adminId }
       );
 
       if (res.data.success) {
@@ -55,9 +50,11 @@ export default function Admins() {
     }
   };
 
-  useEffect(() => {
-    if (token) fetchAdmins();
-  }, [token]);
+ useEffect(() => {
+  if (isAuthenticated) {
+    fetchAdmins();
+  }
+}, [isAuthenticated]);
 
   useEffect(() => {
     const q = searchQuery.trim().toLowerCase();

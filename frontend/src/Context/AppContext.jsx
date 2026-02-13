@@ -8,24 +8,25 @@ import { assets } from "../assets/assets.js";
 export const AppContext = createContext();
 
 const AppContextProvider = (props) => {
-  const [token, setToken] = useState(
-    localStorage.getItem("token") ? localStorage.getItem("token") : ""
-  );
+
+  const [mode, setMode] = useState("development")
   const [items, setItems] = useState([]);
   const [thrashItems, setthrashItems] = useState([]);
   const [itemData, setItemData] = useState({});
-  const [role, setRole] = useState(
-    localStorage.getItem("role") ? localStorage.getItem("role") : ""
-  );
-  const link = "https://inventory-management-racing.onrender.com";
+
+
+
+  const link =
+  mode === "development"
+    ? "http://localhost:5000"
+    : "https://inventory-management-racing.onrender.com";
+
 
   axios.defaults.withCredentials = true;
 
   const getAllItems = async () => {
     try {
-      const data = await axios.get(`${link}/user/get-all-items`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const data = await axios.get(`${link}/user/get-all-items`);
       if (data.data.success) {
         setItems(data.data.items);
       } else {
@@ -40,8 +41,7 @@ const AppContextProvider = (props) => {
     try {
       const res = await axios.post(
         `${link}/user/move-to-thrash-box`,
-        { itemIds },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { itemIds }
       );
 
       if (res.data.success) {
@@ -60,11 +60,8 @@ const AppContextProvider = (props) => {
 
   const getthrashItems = async () => {
     console.log("Fetching all Thrash Items...");
-    console.log(token)
     try {
-      const res = await axios.post(`${link}/user/get-thrash-items`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.post(`${link}/user/get-thrash-items`, {});
 
       if (res.data.success) {
         setthrashItems(res.data.items); // ✅ gelen verileri state'e aktar
@@ -86,23 +83,20 @@ const AppContextProvider = (props) => {
     try {
       const data = await axios.post(
         `${link}/user/get-item`,
-        { itemId },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { itemId }
       );
       if (data.data.success) {
         setItemData(data.data.item);
       } else {
         toast.error(data.data.message);
       }
-    } catch (error) {
+    } catch (error) { 
       toast.error("yoyoyoy");
     }
   };
 
   const value = {
     assets,
-    token,
-    setToken,
     items,
     getAllItems,
     setItems,
@@ -113,8 +107,6 @@ const AppContextProvider = (props) => {
     itemData,
     setItemData,
     getItem,
-    role,
-    setRole,
     link,
   };
 

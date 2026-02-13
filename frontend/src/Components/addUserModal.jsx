@@ -4,7 +4,7 @@ import { AppContext } from "../Context/AppContext";
 import { toast } from "react-toastify";
 
 export default function AddUserModal({ onClose }) {
-  const { token, link } = useContext(AppContext);
+  const { link } = useContext(AppContext);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -27,12 +27,7 @@ export default function AddUserModal({ onClose }) {
 
       const { data } = await axios.post(
          `${link}/user/register-user`,
-        userData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        userData
       );
 
       if (data.success) {

@@ -107,17 +107,7 @@ export const logInUser = async (req, res) => {
       return res.json({ success: false, message: "Incorrect password" });
     }
 
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: email,
-        role: "user",
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
-
-    generateTokenAndSetCookie(res, user._id, user.email, user.role);
+    const token = generateTokenAndSetCookie(res, user._id, user.email, "user");
 
     res.json({
       success: true,
@@ -850,3 +840,59 @@ export const getThrashItem = async (req, res) => {
     });
   }
 };
+
+export const logout = (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+};
+
+export const checkAuth = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(401).json({ success: false });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // 🔥 Superadmin özel case
+    if (decoded.role === "superadmin") {
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: decoded.id,
+          email: decoded.email,
+          role: decoded.role,
+        },
+        role: "superadmin",
+      });
+    }
+
+    // Normal admin / user
+    const user = await userModel.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({ success: false });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+      role: user.role,
+    });
+
+  } catch (error) {
+    return res.status(401).json({ success: false });
+  }
+};
+
+

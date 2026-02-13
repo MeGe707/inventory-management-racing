@@ -25,9 +25,7 @@ export default function LogsPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const res = await axios.get(`${link}/user/get-logs`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(`${link}/user/get-logs`);
         setLogs(res.data.data);
         setFilteredLogs(res.data.data);
       } catch (error) {

@@ -58,7 +58,6 @@ export default function FrequentlyUsedItems() {
       const { data } = await axios.post(
         `${link}/user/update-item`,
         { itemId, quantity: newQty },
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (!data.success) {
@@ -84,7 +83,6 @@ export default function FrequentlyUsedItems() {
       const { data } = await axios.post(
         `${link}/user/update-item`,
         { itemId: item._id, isFrequentlyUsed: newVal },
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (!data.success) {
