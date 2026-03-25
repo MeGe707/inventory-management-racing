@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000";
+const mode = "development";
+
+const API_BASE = mode === "development" ? "http://localhost:5000" : "https://inventory-management-racing.onrender.com";
 
 axios.defaults.withCredentials = true;
 
