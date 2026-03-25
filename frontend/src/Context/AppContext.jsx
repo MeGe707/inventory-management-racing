@@ -16,10 +16,7 @@ const AppContextProvider = (props) => {
 
 
 
-  const link =
-  mode === "development"
-    ? "http://localhost:5000"
-    : "https://inventory-management-racing.onrender.com";
+  const link = "https://inventory-management-racing.onrender.com"
 
 
   axios.defaults.withCredentials = true;
