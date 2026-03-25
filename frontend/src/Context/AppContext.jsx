@@ -9,7 +9,7 @@ export const AppContext = createContext();
 
 const AppContextProvider = (props) => {
 
-  const [mode, setMode] = useState("development")
+  const [mode, setMode] = useState("live")
   const [items, setItems] = useState([]);
   const [thrashItems, setthrashItems] = useState([]);
   const [itemData, setItemData] = useState({});

@@ -64,7 +64,7 @@ useEffect(() => {
   };
 
   const handleToggleFrequentlyUsed = async (item) => {
-    if (!token) return;
+    
 
     const newVal = !item.isFrequentlyUsed;
 

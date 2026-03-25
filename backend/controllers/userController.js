@@ -59,9 +59,8 @@ export const registerUser = async (req, res) => {
       actionType: "CREATE_USER",
       targetType: "User",
       targetId: newUser._id,
-      description: `User "${name}" registered by ${
-        req.user?.id === "00000" ? "Superadmin" : req.user?.name || "Unknown"
-      }`,
+      description: `User "${name}" registered by ${req.user?.id === "00000" ? "Superadmin" : req.user?.name || "Unknown"
+        }`,
       after: newUser.toObject(),
     });
 
@@ -381,9 +380,8 @@ export const updateItem = async (req, res) => {
     const changedKeys = Object.keys(changedFields);
     const descriptionText =
       changedKeys.length > 0
-        ? `${user.name} updated item "${
-            before.name
-          }". Changed fields: ${changedKeys.join(", ")}`
+        ? `${user.name} updated item "${before.name
+        }". Changed fields: ${changedKeys.join(", ")}`
         : `${user.name} triggered update on item "${before.name}", but no fields changed.`;
 
     await ActionLog.create({
@@ -864,21 +862,28 @@ export const checkAuth = async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 Superadmin özel case
+    // Superadmin
     if (decoded.role === "superadmin") {
       return res.status(200).json({
         success: true,
         user: {
-          id: decoded.id,
+          id: decoded.userId || decoded.id,
           email: decoded.email,
           role: decoded.role,
         },
-        role: "superadmin",
+        role: decoded.role,
       });
     }
 
-    // Normal admin / user
-    const user = await userModel.findById(decoded.id).select("-password");
+    const id = decoded.userId || decoded.id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(401).json({ success: false });
+    }
+
+    const user = await userModel
+      .findById(id)
+      .select("-password");
 
     if (!user) {
       return res.status(401).json({ success: false });
@@ -894,5 +899,6 @@ export const checkAuth = async (req, res) => {
     return res.status(401).json({ success: false });
   }
 };
+
 
 

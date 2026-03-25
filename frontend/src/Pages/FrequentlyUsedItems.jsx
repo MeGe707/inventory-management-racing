@@ -5,6 +5,8 @@ import ItemModal from "../Components/ItemModal.jsx";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { useAuthStore } from "../Context/authStore.js";
+
 
 export default function FrequentlyUsedItems() {
   const { token, getAllItems, items, moveItemToThrashBox, link } =
@@ -29,10 +31,15 @@ export default function FrequentlyUsedItems() {
     [items]
   );
 
-  useEffect(() => {
-    if (token) getAllItems();
-  }, [token]);
-
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
+  
+    useEffect(() => {
+    if (isAuthenticated) {
+      getAllItems();
+    }
+  }, [isAuthenticated]);
+  
   useEffect(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return setFilteredItems(baseItems);
