@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
-
+import { useEffect } from "react";
 import "./App.css";
 import Login from "./Pages/Login.jsx";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import Sidebar from "./Components/Sidebar.jsx";
 import Navbar from "./Components/Navbar.jsx";
 import ProtectedRoute from "./Context/ProtectedRoute.jsx";
@@ -23,50 +22,61 @@ import { useAuthStore } from "./Context/authStore.js";
 
 function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
+
+  if (isCheckingAuth) {
+    return <div className="p-10 text-xl">Loading...</div>;
+  }
 
   return (
     <>
       <ToastContainer />
 
-      <Navbar></Navbar>
+      {isAuthenticated && <Navbar />}
+
       <div className="flex items-start">
-        <Sidebar className="fixed" />
+        {isAuthenticated && <Sidebar className="fixed" />}
+
         <Routes>
-          <Route path="/login" element={<Login />} />
           <Route
-            path="/*"
+            path="/login"
             element={
-              <ProtectedRoute>
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />}></Route>
-                  <Route path="/items-list" element={<Items />}></Route>
-                  <Route
-                    path="/thrash-items"
-                    element={<DeletedItems />}
-                  ></Route>
-                  <Route path="/add-item" element={<AddItem />}></Route>
-                  <Route
-                    path="/add-excel-list"
-                    element={<AddExcelList />}
-                  ></Route>
-                  <Route path="/users" element={<Users />}></Route>
-                  <Route path="/admins" element={<Admins />}></Route>
-                  <Route path="/logs" element={<LogsPage></LogsPage>} />
-                  <Route path="/item-logs/:itemId" element={<ItemLogsPage />} />
-                  <Route
-                    path="/frequently-used-items-list"
-                    element={<FrequentlyUsedItems></FrequentlyUsedItems>}
-                  />
-                  <Route
-                    path="email-verification"
-                    element={<EmailVerificationPage />}
-                  />
-                </Routes>
-              </ProtectedRoute>
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+            }
+          />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/items-list" element={<Items />} />
+            <Route path="/thrash-items" element={<DeletedItems />} />
+            <Route path="/add-item" element={<AddItem />} />
+            <Route path="/add-excel-list" element={<AddExcelList />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/admins" element={<Admins />} />
+            <Route path="/logs" element={<LogsPage />} />
+            <Route path="/item-logs/:itemId" element={<ItemLogsPage />} />
+            <Route
+              path="/frequently-used-items-list"
+              element={<FrequentlyUsedItems />}
+            />
+            <Route
+              path="/email-verification"
+              element={<EmailVerificationPage />}
+            />
+          </Route>
+
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to={isAuthenticated ? "/dashboard" : "/login"}
+                replace
+              />
             }
           />
         </Routes>
