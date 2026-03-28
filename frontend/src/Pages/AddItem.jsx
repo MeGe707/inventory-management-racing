@@ -20,6 +20,8 @@ const COMPONENT_OPTIONS = [
   "Switch",
   "Microcontroller",
   "Cable",
+  "Isolator",
+  "OPAMP",
   "OTHER",
 ];
 
@@ -163,7 +165,11 @@ export default function AddItem() {
         description: form.description.trim(),
       };
 
-      const { data } = await axios.post(`${link}/user/add-item`, payload);
+      const token = localStorage.getItem("token");
+
+const { data } = axios.post(`${link}/user/add-item`, payload, {
+  withCredentials: true
+});
 
       if (data?.success) {
         toast.success(data.message || "Item added successfully.");
