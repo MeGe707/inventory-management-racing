@@ -5,8 +5,10 @@ const ProtectedRoute = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
 
+  console.log("PROTECTED ROUTE:", { isAuthenticated, isCheckingAuth });
+
   if (isCheckingAuth) {
-    return <div className="p-10">Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {

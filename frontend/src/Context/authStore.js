@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import axios from "axios";
 
-const mode = "live";
 
 const API_BASE = mode === "development" ? "http://localhost:5000" : "https://inventory-management-racing.onrender.com";
 
@@ -73,11 +72,12 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  checkAuth: async () => {
+checkAuth: async () => {
   set({ isCheckingAuth: true });
 
   try {
     const res = await axios.post(`${API_BASE}/user/check-auth`);
+    console.log("CHECK AUTH RESPONSE:", res.data);
 
     if (res.data.success) {
       set({
@@ -94,7 +94,9 @@ export const useAuthStore = create((set) => ({
         isCheckingAuth: false,
       });
     }
-  } catch {
+  } catch (err) {
+    console.log("CHECK AUTH ERROR:", err.response?.data || err.message);
+
     set({
       user: null,
       role: null,
