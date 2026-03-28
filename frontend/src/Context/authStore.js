@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import axios from "axios";
 
-const mode = "live";
 
 const API_BASE = mode === "development" ? "http://localhost:5000" : "https://inventory-management-racing.onrender.com";
 
@@ -59,7 +58,7 @@ export const useAuthStore = create((set) => ({
     set({ isLoading: true });
 
     try {
-      await axios.post(`${API_BASE}/user/logout`);
+      await axios.post(`${API_BASE}/user/logout`, { withCredentials: true });
 
       set({
         user: null,
@@ -88,16 +87,19 @@ export const useAuthStore = create((set) => ({
       });
     } else {
       set({
+        user: null,
+        role: null,
         isAuthenticated: false,
         isCheckingAuth: false,
       });
     }
   } catch {
     set({
+      user: null,
+      role: null,
       isAuthenticated: false,
       isCheckingAuth: false,
     });
   }
 },
-
 }));
