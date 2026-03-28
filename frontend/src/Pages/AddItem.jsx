@@ -165,17 +165,17 @@ export default function AddItem() {
         description: form.description.trim(),
       };
 
-      const token = localStorage.getItem("token");
 
-const { data } = axios.post(`${link}/user/add-item`, payload, {
+
+const { data } = await axios.post(`${link}/user/add-item`, payload, {
   withCredentials: true
 });
 
-      if (data?.success) {
+      if (data.success) {
         toast.success(data.message || "Item added successfully.");
         resetForm();
       } else {
-        toast.error(data?.message || "Item could not be added.");
+        toast.error(data.message || "Item could not be added.");
       }
     } catch (err) {
       console.error(err);
