@@ -20,9 +20,16 @@ const COMPONENT_OPTIONS = [
   "Switch",
   "Microcontroller",
   "Cable",
+  "Pabuç",
+  "Seal",
+  "Sensor",
+  "Yüksük",
+  "Makaronlar",
+  "Buton",
   "Isolator",
   "OPAMP",
   "OTHER",
+
 ];
 
 const Label = ({ htmlFor, children, required }) => (
