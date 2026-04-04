@@ -1,10 +1,55 @@
-import React, { useEffect, useContext, useState } from "react";
+import React, { useEffect, useContext, useState, useMemo } from "react";
 import { AppContext } from "../Context/AppContext.jsx";
 import ItemModal from "../Components/ItemModal.jsx";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useAuthStore } from "../Context/authStore.js";
+
+const BOARD_OPTIONS = [
+  "TSALINV",
+  "BMSMASTER",
+  "BMSCONT",
+  "BMSCARR",
+  "BSPD",
+  "LATCH",
+  "PRECHARGE",
+  "BUCK_CONVERTER",
+  "VOLTAGE_INDICATOR",
+  "STLINK",
+  "TSALBAT",
+  "LVBMS",
+  "TMS",
+  "IMU",
+  "GPS",
+  "VCU",
+  "BP",
+  "TELEMETRI",
+];
+
+const BOARD_LABELS = {
+  TSALINV: "TSalINV",
+  BMSMASTER: "BMSMaster",
+  BMSCONT: "BMSCont",
+  BMSCARR: "BMSCarr",
+  BSPD: "BSPD",
+  LATCH: "LATCH",
+  PRECHARGE: "Precharge",
+  BUCK_CONVERTER: "Buck Converter",
+  VOLTAGE_INDICATOR: "Voltage Indicator",
+  STLINK: "STLINK",
+  TSALBAT: "TSALBat",
+  LVBMS: "LVBMS",
+  TMS: "TMS",
+  IMU: "IMU",
+  GPS: "GPS",
+  VCU: "VCU",
+  BP: "BP",
+  TELEMETRI: "Telemetri",
+};
+
+
+
 
 export default function AllItems() {
   const { getAllItems, items, moveItemToThrashBox, link } =
@@ -16,29 +61,87 @@ export default function AllItems() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredItems, setFilteredItems] = useState([]);
 
+  const [selectedBoard, setSelectedBoard] = useState("ALL");
+
+
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState([]);
 
-useEffect(() => {
-  if (isAuthenticated) {
-    getAllItems();
-  }
-}, [isAuthenticated]);
-
+  const [sortOrder, setSortOrder] = useState("newest");
 
   useEffect(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return setFilteredItems(items);
+    if (isAuthenticated) {
+      getAllItems();
+    }
+  }, [isAuthenticated]);
 
-    setFilteredItems(
-      items.filter((item) => {
+  const getItemSortTime = (item) => {
+  if (item.lastUpdatedOn) {
+    return new Date(item.lastUpdatedOn).getTime();
+  }
+  if (item.addedOn) {
+    return new Date(item.addedOn).getTime();
+  }
+  return 0;
+};
+
+  useEffect(() => {
+    let result = [...items];
+
+    const q = searchQuery.trim().toLowerCase();
+
+    if (q) {
+      result = result.filter((item) => {
+        if (searchField === "relatedBoards") {
+          const boardsText = Array.isArray(item.relatedBoards)
+            ? item.relatedBoards.join(" ").toLowerCase()
+            : "";
+          return boardsText.includes(q);
+        }
+
         const val = String(item[searchField] || "").toLowerCase();
         return val.includes(q);
-      })
-    );
-  }, [items, searchField, searchQuery]);
+      });
+    }
+
+    
+
+    if (selectedBoard !== "ALL") {
+      result = result.filter(
+        (item) =>
+          Array.isArray(item.relatedBoards) &&
+          item.relatedBoards.includes(selectedBoard)
+      );
+    }
+
+    console.log(
+  "sortOrder:",
+  sortOrder,
+  items.map((item) => ({
+    name: item.name,
+    addedOn: item.addedOn,
+    sortTime: getItemSortTime(item),
+  }))
+);
+result.sort((a, b) => {
+  const timeA = getItemSortTime(a);
+  const timeB = getItemSortTime(b);
+
+  if (sortOrder === "newest") {
+    return timeB - timeA;
+  }
+
+  if (sortOrder === "oldest") {
+    return timeA - timeB;
+  }
+
+  return 0;
+});
+
+    setFilteredItems(result);
+  }, [items, searchField, searchQuery, selectedBoard, sortOrder]);
 
   const handleQuantityChange = async (itemId, newQty) => {
     if (newQty < 0) return;
@@ -50,22 +153,21 @@ useEffect(() => {
     );
 
     try {
-      const { data } = await axios.post(
-        `${link}/user/update-item`,
-        { itemId, quantity: newQty }
-      );
+      const { data } = await axios.post(`${link}/user/update-item`, {
+        itemId,
+        quantity: newQty,
+      });
 
       if (!data.success) {
-        alert("Backend did not save the changes.");
+        toast.error("Backend did not save the changes.");
       }
     } catch (err) {
       console.error("Backend error:", err);
+      toast.error("Quantity update failed.");
     }
   };
 
   const handleToggleFrequentlyUsed = async (item) => {
-    
-
     const newVal = !item.isFrequentlyUsed;
 
     setFilteredItems((prev) =>
@@ -75,10 +177,10 @@ useEffect(() => {
     );
 
     try {
-      const { data } = await axios.post(
-        `${link}/user/update-item`,
-        { itemId: item._id, isFrequentlyUsed: newVal }
-      );
+      const { data } = await axios.post(`${link}/user/update-item`, {
+        itemId: item._id,
+        isFrequentlyUsed: newVal,
+      });
 
       if (!data.success) {
         toast.error(data.message || "Could not update favorite flag.");
@@ -120,13 +222,17 @@ useEffect(() => {
   };
 
   const isAllSelected =
-    filteredItems.length > 0 && selectedIds.length === filteredItems.length;
+    filteredItems.length > 0 &&
+    filteredItems.every((item) => selectedIds.includes(item._id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      setSelectedIds([]);
+      setSelectedIds((prev) =>
+        prev.filter((id) => !filteredItems.some((item) => item._id === id))
+      );
     } else {
-      setSelectedIds(filteredItems.map((item) => item._id));
+      const filteredIds = filteredItems.map((item) => item._id);
+      setSelectedIds((prev) => [...new Set([...prev, ...filteredIds])]);
     }
   };
 
@@ -152,6 +258,7 @@ useEffect(() => {
         price,
         location,
         description,
+        relatedBoards,
         addedOn,
         addedBy,
         lastUpdatedOn,
@@ -167,6 +274,9 @@ useEffect(() => {
         Price: price,
         Location: location,
         Description: description,
+        "Related Boards": Array.isArray(relatedBoards)
+          ? relatedBoards.join(", ")
+          : "",
         "Added On": addedOn,
         "Added By": addedBy,
         "Last Updated On": lastUpdatedOn,
@@ -181,44 +291,67 @@ useEffect(() => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4">
+    <div className="w-full max-w-7xl mx-auto px-4">
       <p className="mb-4 mt-3 text-2xl font-medium">All Items</p>
 
-      <div className="flex items-center gap-2 mb-4">
-        <select
-          value={searchField}
-          onChange={(e) => setSearchField(e.target.value)}
-          className="border rounded px-3 py-2"
-        >
-          <option value="name">Name</option>
-          <option value="component">Component</option>
-          <option value="brandName">Brand</option>
-          <option value="supplierName">Supplier</option>
-          <option value="serialNumber">Part Number</option>
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2">
+          <select
+            value={searchField}
+            onChange={(e) => setSearchField(e.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="name">Name</option>
+            <option value="component">Component</option>
+            <option value="brandName">Brand</option>
+            <option value="supplierName">Supplier</option>
+            <option value="serialNumber">Part Number</option>
+            <option value="description">Description</option>
+            <option value="addedBy">Added By</option>
+            <option value="lastUpdatedBy">Last Updated By</option>
+            <option value="relatedBoards">Related Boards</option>
+          </select>
 
-          {/* ✅ BUNU EKLE */}
-          <option value="description">Description</option>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={`Search by ${searchField}...`}
+            className="flex-1 border rounded px-3 py-2"
+          />
 
-          <option value="addedBy">Added By</option>
-          <option value="lastUpdatedBy">Last Updated By</option>
-        </select>
+          <select
+            value={selectedBoard}
+            onChange={(e) => setSelectedBoard(e.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="ALL">All Boards</option>
+            {BOARD_OPTIONS.map((board) => (
+              <option key={board} value={board}>
+                {BOARD_LABELS[board] || board}
+              </option>
+            ))}
+          </select>
 
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e .target.value)}
-          placeholder={`Search by ${searchField}...`}
-          className="flex-1 border rounded px-3 py-2"
-        />
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="newest">Newest Added</option>
+            <option value="oldest">Oldest Added</option>
+          </select>
+        </div>
 
         {selectedIds.length > 0 && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={handleExport}
               className="bg-blue-500 text-white px-4 py-2 rounded"
             >
               Export to Excel
             </button>
+
             <button
               onClick={async () => {
                 if (
@@ -228,6 +361,7 @@ useEffect(() => {
                 ) {
                   try {
                     await moveItemToThrashBox(selectedIds);
+                    setSelectedIds([]);
                   } catch (e) {
                     toast.error("An error occurred while deleting items.");
                   }
@@ -241,45 +375,44 @@ useEffect(() => {
         )}
       </div>
 
-      {/* HEADER */}
-      {/* HEADER */}
-      <div className="hidden sm:grid grid-cols-[40px_50px_240px_136px_0.7fr_120px_70px] py-3 px-6 border-b font-semibold text-gray-700 items-center justify-items-center">
+      <div className="hidden lg:grid grid-cols-[40px_50px_190px_120px_220px_160px_1fr_70px] py-3 px-6 border-b font-semibold text-gray-700 items-center">
         <input
           type="checkbox"
           checked={isAllSelected}
           onChange={toggleSelectAll}
         />
-        <p>#</p>
-        <p>Item Name</p>
-        <p>Qty</p>
-        <p className="ml-20">Description</p>
-        <p className="ml-56">Location</p>
-        <p className="ml-56">Fav</p>
+        <p className="text-center">#</p>
+        <p className="text-center">Item Name</p>
+        <p className="text-center">Qty</p>
+        <p className="text-center">Related Boards</p>
+        <p className="text-center">Location</p>
+        <p className="text-center">Description</p>
+        <p className="text-center">Fav</p>
       </div>
 
-      <div className="bg-white border-rounded text-sm max-h-[80vh] min--[60vh] overflow-y-scroll">
+      <div className="bg-white rounded-xl border text-sm max-h-[80vh] overflow-y-auto">
         {filteredItems.map((item, index) => (
           <div
             key={item._id}
-            className="flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[40px_50px_240px_140px_1fr_120px_70px] items-center py-3 px-6 border-b hover:bg-gray-50 text-gray-500"
+            className="flex flex-col gap-3 lg:grid lg:grid-cols-[40px_50px_190px_120px_220px_160px_1fr_70px] items-start lg:items-center py-3 px-6 border-b hover:bg-gray-50 text-gray-600"
           >
             <input
               type="checkbox"
               checked={selectedIds.includes(item._id)}
               onChange={() => toggleSelectItem(item._id)}
-              className="justify-self-center"
+              className="lg:justify-self-center"
             />
 
-            <p className="max-sm:hidden justify-self-center">{index + 1}</p>
+            <p className="hidden lg:block text-center w-full">{index + 1}</p>
 
             <p
               onClick={() => handleItemClick(item)}
-              className="cursor-pointer justify-self-center text-center"
+              className="cursor-pointer text-center w-full font-medium"
             >
               {item.name}
             </p>
 
-            <p className="flex items-center justify-center gap-1 justify-self-center">
+            <p className="flex items-center justify-center gap-1 w-full">
               <button
                 onClick={() =>
                   handleQuantityChange(item._id, item.quantity - 1)
@@ -288,7 +421,7 @@ useEffect(() => {
               >
                 −
               </button>
-              <span className="w-8   text-center text-sm">{item.quantity}</span>
+              <span className="w-8 text-center text-sm">{item.quantity}</span>
               <button
                 onClick={() =>
                   handleQuantityChange(item._id, item.quantity + 1)
@@ -299,25 +432,40 @@ useEffect(() => {
               </button>
             </p>
 
+            <div className="flex flex-wrap gap-1 w-full">
+              {Array.isArray(item.relatedBoards) && item.relatedBoards.length > 0 ? (
+                item.relatedBoards.map((board) => (
+                  <span
+                    key={board}
+                    className="px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium"
+                  >
+                    {BOARD_LABELS[board] || board}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-400 text-xs">—</span>
+              )}
+            </div>
+
             <p
-              className="text-xs text-left cursor-pointer ml-12 leading-5"
+              className="cursor-pointer w-full"
+              onClick={() => handleItemClick(item)}
+            >
+              {item.location}
+            </p>
+
+            <p
+              className="text-xs cursor-pointer leading-5 w-full"
               onClick={() => handleItemClick(item)}
               title={item.description || ""}
             >
               {item.description || "—"}
             </p>
 
-            <p
-              className="cursor-pointer justify-self-center text-center"
-              onClick={() => handleItemClick(item)}
-            >
-              {item.location}
-            </p>
-
             <button
               type="button"
               onClick={() => handleToggleFrequentlyUsed(item)}
-              className={`justify-self-center ml-2 hover:text-yellow-600 ${
+              className={`lg:justify-self-center hover:text-yellow-600 ${
                 item.isFrequentlyUsed
                   ? "text-yellow-500 text-xl"
                   : "text-gray-400 text-xl"
@@ -330,7 +478,7 @@ useEffect(() => {
 
         {filteredItems.length === 0 && (
           <p className="text-center text-gray-500 p-4">
-            No items match your search.
+            No items match your filters.
           </p>
         )}
       </div>

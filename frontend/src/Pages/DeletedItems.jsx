@@ -7,7 +7,7 @@ import axios from "axios";
 import { useAuthStore } from "../Context/authStore.js";
 
 export default function DeletedItems() {
-  const { thrashItems, getthrashItems, link } = useContext(AppContext);
+  const { thrashItems, getThrashItems, link } = useContext(AppContext);
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [modalItemId, setModalItemId] = useState(null);
@@ -17,7 +17,7 @@ export default function DeletedItems() {
 
   useEffect(() => {
   if (isAuthenticated) {
-    getthrashItems();
+    getThrashItems();
   }
 }, [isAuthenticated]);
 
@@ -57,7 +57,7 @@ export default function DeletedItems() {
           data.message || "Selected items have been permanently deleted."
         );
         setSelectedIds([]);
-        getthrashItems();
+        getThrashItems();
       } else
         toast.error(data.message || "Bulk delete operation failed.");
     } catch {
@@ -78,7 +78,7 @@ export default function DeletedItems() {
           data.message || "Selected items have been recovered."
         );
         setSelectedIds([]);
-        getthrashItems();
+        getThrashItems();
       } else
         toast.error(data.message || "Bulk recovery failed.");
     } catch (err) {
@@ -170,11 +170,11 @@ export default function DeletedItems() {
           onClose={() => setModalItemId(null)}
           onRecovered={() => {
             setSelectedIds((prev) => prev.filter((id) => id !== modalItemId));
-            getthrashItems();
+            getThrashItems();
           }}
           onDeleted={() => {
             setSelectedIds((prev) => prev.filter((id) => id !== modalItemId));
-            getthrashItems();
+            getThrashItems();
           }}
         />
       )}

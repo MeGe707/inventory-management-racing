@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 
-const mode = "live";
+const mode = "live"; // "development" veya "production"
 
 const API_BASE = mode === "development" ? "http://localhost:5000" : "https://inventory-management-racing.onrender.com";
 

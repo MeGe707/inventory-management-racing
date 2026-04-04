@@ -1,6 +1,4 @@
-import { createContext, useEffect } from "react";
-import { useState } from "react";
-
+import { createContext, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { assets } from "../assets/assets.js";
@@ -8,47 +6,45 @@ import { assets } from "../assets/assets.js";
 export const AppContext = createContext();
 
 const AppContextProvider = (props) => {
+  const mode = "live";
 
-  const [mode, setMode] = useState("live");
   const [items, setItems] = useState([]);
-  const [thrashItems, setthrashItems] = useState([]);
-  const [itemData, setItemData] = useState({});
-
-
+  const [thrashItems, setThrashItems] = useState([]);
+  const [itemData, setItemData] = useState({
+    relatedBoards: [],
+  });
 
   const link =
-  mode === "development"
-    ? "http://localhost:5000"
-    : "https://inventory-management-racing.onrender.com";
-
+    mode === "development"
+      ? "http://localhost:5000"
+      : "https://inventory-management-racing.onrender.com";
 
   axios.defaults.withCredentials = true;
 
   const getAllItems = async () => {
     try {
-      const data = await axios.get(`${link}/user/get-all-items`);
-      if (data.data.success) {
-        setItems(data.data.items);
+      const res = await axios.get(`${link}/user/get-all-items`);
+      if (res.data.success) {
+        setItems(res.data.items);
       } else {
-        toast.error(data.data.message);
+        toast.error(res.data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   };
 
   const moveItemToThrashBox = async (itemIds) => {
     try {
-      const res = await axios.post(
-        `${link}/user/move-to-thrash-box`,
-        { itemIds }
-      );
+      const res = await axios.post(`${link}/user/move-to-thrash-box`, {
+        itemIds,
+      });
 
       if (res.data.success) {
         toast.success(
           res.data.message || "Item başarıyla çöp kutusuna taşındı."
         );
-        getAllItems(); // listeyi yenile
+        getAllItems();
       } else {
         toast.error(res.data.message || "Item taşınırken hata oluştu.");
       }
@@ -58,13 +54,13 @@ const AppContextProvider = (props) => {
     }
   };
 
-  const getthrashItems = async () => {
+  const getThrashItems = async () => {
     console.log("Fetching all Thrash Items...");
     try {
       const res = await axios.post(`${link}/user/get-thrash-items`, {});
 
       if (res.data.success) {
-        setthrashItems(res.data.items); // ✅ gelen verileri state'e aktar
+        setThrashItems(res.data.items);
         console.log("Thrash items fetched:", res.data.items.length);
       } else {
         toast.error(res.data.message || "Thrash item'lar alınamadı.");
@@ -79,19 +75,16 @@ const AppContextProvider = (props) => {
   };
 
   const getItem = async (itemId) => {
-    console.log(itemId);
     try {
-      const data = await axios.post(
-        `${link}/user/get-item`,
-        { itemId }
-      );
-      if (data.data.success) {
-        setItemData(data.data.item);
+      const res = await axios.post(`${link}/user/get-item`, { itemId });
+
+      if (res.data.success) {
+        setItemData(res.data.item);
       } else {
-        toast.error(data.data.message);
+        toast.error(res.data.message);
       }
-    } catch (error) { 
-      toast.error("yoyoyoy");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Item alınırken hata oluştu.");
     }
   };
 
@@ -100,8 +93,8 @@ const AppContextProvider = (props) => {
     items,
     getAllItems,
     setItems,
-    getthrashItems,
-    setthrashItems,
+    getThrashItems,
+    setThrashItems,
     moveItemToThrashBox,
     thrashItems,
     itemData,

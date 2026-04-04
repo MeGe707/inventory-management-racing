@@ -1,15 +1,74 @@
-// ItemModal.jsx
 import React, { useEffect, useContext, useState } from "react";
 import { AppContext } from "../Context/AppContext.jsx";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+const BOARD_OPTIONS = [
+  "TSALINV",
+  "BMSMASTER",
+  "BMSCONT",
+  "BMSCARR",
+  "BSPD",
+  "LATCH",
+  "PRECHARGE",
+  "BUCK_CONVERTER",
+  "VOLTAGE_INDICATOR",
+  "STLINK",
+  "TSALBAT",
+  "LVBMS",
+  "TMS",
+  "IMU",
+  "GPS",
+  "VCU",
+  "BP",
+  "TELEMETRI",
+];
+
+const BOARD_LABELS = {
+  TSALINV: "TSalINV",
+  BMSMASTER: "BMSMaster",
+  BMSCONT: "BMSCont",
+  BMSCARR: "BMSCarr",
+  BSPD: "BSPD",
+  LATCH: "LATCH",
+  PRECHARGE: "Precharge",
+  BUCK_CONVERTER: "Buck Converter",
+  VOLTAGE_INDICATOR: "Voltage Indicator",
+  STLINK: "STLINK",
+  TSALBAT: "TSALBat",
+  LVBMS: "LVBMS",
+  TMS: "TMS",
+  IMU: "IMU",
+  GPS: "GPS",
+  VCU: "VCU",
+  BP: "BP",
+  TELEMETRI: "Telemetri",
+};
+
 export default function ItemModal({ itemId, onClose }) {
   const navigate = useNavigate();
   const { getItem, itemData, setItemData, moveItemToThrashBox, link } =
     useContext(AppContext);
+
   const [isEditing, setIsEditing] = useState(false);
+
+  const handleBoardToggle = (boardValue) => {
+    setItemData((prev) => {
+      const currentBoards = Array.isArray(prev.relatedBoards)
+        ? prev.relatedBoards
+        : [];
+
+      const updatedBoards = currentBoards.includes(boardValue)
+        ? currentBoards.filter((board) => board !== boardValue)
+        : [...currentBoards, boardValue];
+
+      return {
+        ...prev,
+        relatedBoards: updatedBoards,
+      };
+    });
+  };
 
   const updateItemData = async () => {
     try {
@@ -32,19 +91,24 @@ export default function ItemModal({ itemId, onClose }) {
         location: itemData.location || "",
         isFrequentlyUsed: !!itemData.isFrequentlyUsed,
         description: itemData.description || "",
+        relatedBoards: Array.isArray(itemData.relatedBoards)
+          ? itemData.relatedBoards
+          : [],
       };
 
       const { data } = await axios.post(`${link}/user/update-item`, payload);
 
       if (data.success) {
-        await getItem(itemId); // Güncellenen veriyi tekrar çek
+        await getItem(itemId);
         setIsEditing(false);
         toast.success(data.message);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(
+        error.response?.data?.message || "Item güncellenirken hata oluştu."
+      );
     }
   };
 
@@ -53,7 +117,6 @@ export default function ItemModal({ itemId, onClose }) {
     onClose();
   };
 
-  // ESC ile kapatma
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") onClose();
@@ -62,12 +125,10 @@ export default function ItemModal({ itemId, onClose }) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  // itemId değişince veriyi çek
   useEffect(() => {
     if (itemId) getItem(itemId);
-  }, [itemId, getItem]);
+  }, [itemId]);
 
-  // Veri gelmediyse
   if (!itemData) {
     return (
       <>
@@ -88,20 +149,17 @@ export default function ItemModal({ itemId, onClose }) {
 
   return (
     <>
-      {/* Overlay */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 px-4 scroll">
         <div
           className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto 
                      overflow-hidden transform transition-transform duration-200 
                      ease-out scale-95 animate-fade-in"
         >
-          {/* Başlık */}
           <div className="flex justify-between items-center bg-indigo-600 px-6 py-4">
             <h2 className="text-white text-xl font-semibold">Ürün Detayı</h2>
             <button
@@ -112,9 +170,7 @@ export default function ItemModal({ itemId, onClose }) {
             </button>
           </div>
 
-          {/* İçerik */}
           <div className="p-6 space-y-4 text-gray-800 max-h-[70vh] overflow-y-auto">
-            {/* Name */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Name:</span>
               {isEditing ? (
@@ -134,7 +190,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Component */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Component:</span>
               {isEditing ? (
@@ -157,7 +212,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Serial Number */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Serial Number:</span>
               {isEditing ? (
@@ -180,7 +234,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Brand Name */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Brand Name:</span>
               {isEditing ? (
@@ -203,7 +256,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Supplier Name */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Supplier Name:</span>
               {isEditing ? (
@@ -226,7 +278,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Location */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Location:</span>
               {isEditing ? (
@@ -249,7 +300,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Quantity */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Quantity:</span>
               {isEditing ? (
@@ -272,7 +322,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Threshold */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Threshold:</span>
               {isEditing ? (
@@ -297,7 +346,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Price */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Price:</span>
               {isEditing ? (
@@ -322,7 +370,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Frequently Used */}
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Frequently Used:</span>
               {isEditing ? (
@@ -344,7 +391,47 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Description */}
+            <div className="flex items-start justify-between gap-4">
+              <span className="font-medium w-full mr-4 pt-1">Related Boards:</span>
+
+              {isEditing ? (
+                <div className="w-56 max-w-full border border-gray-300 rounded px-3 py-2 max-h-40 overflow-y-auto">
+                  <div className="space-y-2">
+                    {BOARD_OPTIONS.map((board) => (
+                      <label
+                        key={board}
+                        className="flex items-center gap-2 text-sm text-gray-700"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(itemData.relatedBoards || []).includes(board)}
+                          onChange={() => handleBoardToggle(board)}
+                          className="w-4 h-4"
+                        />
+                        <span>{BOARD_LABELS[board] || board}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap justify-end gap-2 max-w-[60%]">
+                  {Array.isArray(itemData.relatedBoards) &&
+                  itemData.relatedBoards.length > 0 ? (
+                    itemData.relatedBoards.map((board) => (
+                      <span
+                        key={board}
+                        className="px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium"
+                      >
+                        {BOARD_LABELS[board] || board}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-700">—</span>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-between">
               <span className="font-medium w-full mr-4">Description:</span>
               {isEditing ? (
@@ -370,7 +457,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
             </div>
 
-            {/* Meta bilgiler */}
             <div className="flex justify-between">
               <span className="font-medium">Added at:</span>
               <span className="text-gray-700">{itemData.addedOn}</span>
@@ -393,7 +479,6 @@ export default function ItemModal({ itemId, onClose }) {
               </div>
             )}
 
-            {/* Update History */}
             {Array.isArray(itemData.allUpdates) &&
               itemData.allUpdates.length > 0 && (
                 <div>
@@ -409,7 +494,6 @@ export default function ItemModal({ itemId, onClose }) {
               )}
           </div>
 
-          {/* Footer */}
           <div className="bg-gray-100 px-6 py-4 flex justify-between items-center flex-wrap gap-2">
             <div className="flex gap-2">
               {!isEditing ? (
@@ -440,7 +524,6 @@ export default function ItemModal({ itemId, onClose }) {
               </button>
             </div>
 
-            {/* Item Log Butonu */}
             <button
               onClick={() => {
                 onClose();

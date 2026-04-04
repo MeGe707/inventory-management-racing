@@ -13,6 +13,7 @@ import ActionLog from "../models/actionModel.js";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 import { sendVerificationEmail } from "../mails/emails.js";
 import mongoose from "mongoose";
+import { BOARD_TAGS } from "../models/itemModel.js";
 
 export const registerUser = async (req, res) => {
   try {
@@ -158,7 +159,46 @@ export const addItem = async (req, res) => {
       location,
       isFrequentlyUsed,
       description = "",
+      relatedBoards = [],
     } = req.body;
+
+    if (
+      !name ||
+      !component ||
+      !brandName ||
+      !supplierName ||
+      !serialNumber ||
+      quantity === undefined ||
+      !location
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide all required fields",
+      });
+    }
+
+    if (!Array.isArray(relatedBoards)) {
+      return res.status(400).json({
+        success: false,
+        message: "relatedBoards must be an array",
+      });
+    }
+
+    const cleanedBoards = relatedBoards.map((board) => String(board).trim());
+
+    const invalidBoards = cleanedBoards.filter(
+      (board) => !BOARD_TAGS.includes(board)
+    );
+
+    if (invalidBoards.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid board tags provided",
+        invalidBoards,
+      });
+    }
+
+    const uniqueBoards = [...new Set(cleanedBoards)];
 
     const userId = req?.user?.id;
     let userName = "Superadmin";
@@ -166,9 +206,10 @@ export const addItem = async (req, res) => {
     if (userId && userId !== "00000") {
       const user = await userModel.findById(userId).select("name");
       if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, message: "User not found" });
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
       }
       userName = user.name;
     }
@@ -183,22 +224,23 @@ export const addItem = async (req, res) => {
     });
 
     const itemData = {
-      name,
-      component,
-      brandName,
-      supplierName,
-      serialNumber,
-      quantity,
-      threshold,
-      price,
-      location,
+      name: name.trim(),
+      component: component.trim(),
+      brandName: brandName.trim(),
+      supplierName: supplierName.trim(),
+      serialNumber: serialNumber.trim(),
+      quantity: Number(quantity),
+      threshold: threshold !== undefined && threshold !== "" ? Number(threshold) : undefined,
+      price: price !== undefined && price !== "" ? Number(price) : undefined,
+      location: location.trim(),
       isFrequentlyUsed,
       addedOn: formatted,
       addedBy: userName,
       lastUpdatedOn: formatted,
       lastUpdatedBy: userName,
       allUpdates: [{ updatedBy: userName, updatedAt: formatted }],
-      description,
+      description: description.trim(),
+      relatedBoards: uniqueBoards,
     };
 
     const newItem = await itemModel.create(itemData);
@@ -220,7 +262,10 @@ export const addItem = async (req, res) => {
     });
   } catch (error) {
     console.error("Error while adding item:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -243,18 +288,22 @@ export const getAllItems = async (req, res) => {
 
 export const getItem = async (req, res) => {
   try {
-    const { itemId } = req.body; // you can also use req.params.id if you want
+    const { itemId } = req.body;
+
     if (!itemId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Item ID is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Item ID is required",
+      });
     }
 
     const item = await itemModel.findById(itemId);
+
     if (!item) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Item not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Item not found",
+      });
     }
 
     const itemData = {
@@ -275,14 +324,19 @@ export const getItem = async (req, res) => {
       lastUpdatedBy: item.lastUpdatedBy,
       allUpdates: item.allUpdates,
       description: item.description || "",
+      relatedBoards: item.relatedBoards || [],
     };
 
-    return res.json({ success: true, item: itemData });
+    return res.json({
+      success: true,
+      item: itemData,
+    });
   } catch (error) {
     console.error("getItem error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error while fetching item." });
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching item.",
+    });
   }
 };
 
@@ -301,32 +355,60 @@ export const updateItem = async (req, res) => {
       location,
       isFrequentlyUsed,
       description,
+      relatedBoards,
     } = req.body;
 
     if (!itemId || !mongoose.Types.ObjectId.isValid(itemId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid item ID" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid item ID",
+      });
     }
 
-    // User info
     const userId = req?.user?.id;
     const user =
       userId === "00000"
         ? { name: "Superadmin" }
         : await userModel.findById(userId).select("name");
+
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
 
-    // Item record
     const item = await itemModel.findById(itemId);
     if (!item) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Item not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Item not found",
+      });
+    }
+
+    if (relatedBoards !== undefined && !Array.isArray(relatedBoards)) {
+      return res.status(400).json({
+        success: false,
+        message: "relatedBoards must be an array",
+      });
+    }
+
+    let cleanedBoards = item.relatedBoards || [];
+
+    if (relatedBoards !== undefined) {
+      cleanedBoards = [...new Set(relatedBoards.map((board) => String(board).trim()))];
+
+      const invalidBoards = cleanedBoards.filter(
+        (board) => !BOARD_TAGS.includes(board)
+      );
+
+      if (invalidBoards.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid board tags provided",
+          invalidBoards,
+        });
+      }
     }
 
     const now = new Date();
@@ -340,19 +422,43 @@ export const updateItem = async (req, res) => {
 
     const before = item.toObject();
 
-    // Fields to update
     const updatedFields = {
-      name: name ?? item.name,
-      component: component ?? item.component,
-      brandName: brandName ?? item.brandName,
-      supplierName: supplierName ?? item.supplierName,
-      serialNumber: serialNumber ?? item.serialNumber,
-      quantity: quantity ?? item.quantity,
-      threshold: threshold ?? item.threshold,
-      price: price ?? item.price,
-      location: location ?? item.location,
-      isFrequentlyUsed: isFrequentlyUsed ?? item.isFrequentlyUsed,
-      description: description ?? item.description,
+      name: name !== undefined ? String(name).trim() : item.name,
+      component: component !== undefined ? String(component).trim() : item.component,
+      brandName:
+        brandName !== undefined ? String(brandName).trim() : item.brandName,
+      supplierName:
+        supplierName !== undefined
+          ? String(supplierName).trim()
+          : item.supplierName,
+      serialNumber:
+        serialNumber !== undefined
+          ? String(serialNumber).trim()
+          : item.serialNumber,
+      quantity:
+        quantity !== undefined ? Number(quantity) : item.quantity,
+      threshold:
+        threshold !== undefined
+          ? threshold === "" || threshold === null
+            ? undefined
+            : Number(threshold)
+          : item.threshold,
+      price:
+        price !== undefined
+          ? price === "" || price === null
+            ? undefined
+            : Number(price)
+          : item.price,
+      location: location !== undefined ? String(location).trim() : item.location,
+      isFrequentlyUsed:
+        isFrequentlyUsed !== undefined
+          ? isFrequentlyUsed
+          : item.isFrequentlyUsed,
+      description:
+        description !== undefined
+          ? String(description).trim()
+          : item.description,
+      relatedBoards: cleanedBoards,
     };
 
     const formData = {
@@ -367,21 +473,34 @@ export const updateItem = async (req, res) => {
 
     const updatedItem = await itemModel.findByIdAndUpdate(itemId, formData, {
       new: true,
+      runValidators: true,
     });
 
-    // Detect changed fields
     const changedFields = {};
     for (const key of Object.keys(updatedFields)) {
-      if (before[key] !== updatedFields[key]) {
-        changedFields[key] = { from: before[key], to: updatedFields[key] };
+      const beforeValue = before[key];
+      const afterValue = updatedFields[key];
+
+      const isDifferent =
+        Array.isArray(beforeValue) || Array.isArray(afterValue)
+          ? JSON.stringify(beforeValue || []) !== JSON.stringify(afterValue || [])
+          : beforeValue !== afterValue;
+
+      if (isDifferent) {
+        changedFields[key] = {
+          from: beforeValue,
+          to: afterValue,
+        };
       }
     }
 
     const changedKeys = Object.keys(changedFields);
+
     const descriptionText =
       changedKeys.length > 0
-        ? `${user.name} updated item "${before.name
-        }". Changed fields: ${changedKeys.join(", ")}`
+        ? `${user.name} updated item "${before.name}". Changed fields: ${changedKeys.join(
+            ", "
+          )}`
         : `${user.name} triggered update on item "${before.name}", but no fields changed.`;
 
     await ActionLog.create({
@@ -403,9 +522,10 @@ export const updateItem = async (req, res) => {
     });
   } catch (err) {
     console.error("updateItem error:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error while updating item." });
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating item.",
+    });
   }
 };
 
@@ -420,6 +540,13 @@ export const uploadExcelItems = async (req, res) => {
       user = await userModel.findById(userId).select("name");
     }
 
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     const now = new Date();
     const formatted = now.toLocaleString("en-US", {
       year: "numeric",
@@ -429,60 +556,102 @@ export const uploadExcelItems = async (req, res) => {
       minute: "2-digit",
     });
 
-    // Read Excel file
     const workbook = xlsx.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
     const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
       defval: "",
     });
 
-    // Delete file
     fs.unlinkSync(req.file.path);
 
-    // Normalize rows from Excel
-    const itemsToInsert = rows.map((row) => {
+    const invalidRows = [];
+    const itemsToInsert = [];
+
+    rows.forEach((row, index) => {
       const normalized = {};
+
       Object.keys(row).forEach((key) => {
         const cleanKey = key.toLowerCase().replace(/\s+/g, "");
         normalized[cleanKey] = row[key];
       });
 
-      return {
+      const parsedBoards = normalized["relatedboards"]
+        ? normalized["relatedboards"]
+            .toString()
+            .split(",")
+            .map((board) => board.trim().toUpperCase())
+            .filter(Boolean)
+        : [];
+
+      const uniqueBoards = [...new Set(parsedBoards)];
+
+      const invalidBoards = uniqueBoards.filter(
+        (board) => !BOARD_TAGS.includes(board)
+      );
+
+      const item = {
         name: normalized["name"]?.toString().trim(),
         component: normalized["component"]?.toString().trim(),
         brandName: normalized["brand"]?.toString().trim(),
         supplierName: normalized["supplier"]?.toString().trim(),
         serialNumber: normalized["partnumber"]?.toString().trim(),
-        quantity: parseInt(normalized["quantity"]),
-        threshold: parseInt(normalized["threshold"]) || 0,
-        price: parseFloat(normalized["price"]) || 0,
+        quantity:
+          normalized["quantity"] !== ""
+            ? parseInt(normalized["quantity"])
+            : undefined,
+        threshold:
+          normalized["threshold"] !== ""
+            ? parseInt(normalized["threshold"])
+            : undefined,
+        price:
+          normalized["price"] !== ""
+            ? parseFloat(normalized["price"])
+            : undefined,
         location: normalized["location"]?.toString().trim(),
         isFrequentlyUsed: false,
-        description: normalized["description"]?.toString().trim(),
+        description: normalized["description"]?.toString().trim() || "",
+        relatedBoards: uniqueBoards,
         addedOn: formatted,
         addedBy: user.name,
         lastUpdatedOn: formatted,
         lastUpdatedBy: user.name,
         allUpdates: [{ updatedBy: user.name, updatedAt: formatted }],
       };
+
+      const missingRequiredFields = [];
+      if (!item.name) missingRequiredFields.push("name");
+      if (!item.component) missingRequiredFields.push("component");
+      if (!item.brandName) missingRequiredFields.push("brand");
+      if (!item.supplierName) missingRequiredFields.push("supplier");
+      if (!item.serialNumber) missingRequiredFields.push("partNumber");
+      if (item.quantity === undefined || Number.isNaN(item.quantity)) {
+        missingRequiredFields.push("quantity");
+      }
+      if (!item.location) missingRequiredFields.push("location");
+
+      if (missingRequiredFields.length > 0 || invalidBoards.length > 0) {
+        invalidRows.push({
+          rowNumber: index + 2,
+          name: item.name || "",
+          missingRequiredFields,
+          invalidBoards,
+        });
+        return;
+      }
+
+      itemsToInsert.push(item);
     });
 
-    // Filter out invalid rows
-    const validItems = itemsToInsert.filter(
-      (item) => item.name && item.brandName && item.serialNumber
-    );
-
-    if (validItems.length === 0) {
+    if (itemsToInsert.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Excel file does not contain any valid items.",
+        invalidRows,
       });
     }
 
-    // Insert into DB
-    const insertedItems = await itemModel.insertMany(validItems);
+    const insertedItems = await itemModel.insertMany(itemsToInsert);
 
-    // ActionLog: create a log for each item
     const actionLogs = insertedItems.map((item) => ({
       userId: userId === "00000" ? undefined : userId,
       userName: user.name,
@@ -496,20 +665,22 @@ export const uploadExcelItems = async (req, res) => {
 
     await ActionLog.insertMany(actionLogs);
 
-    res.json({
+    return res.json({
       success: true,
-      message: `${validItems.length} item(s) added successfully!`,
+      message: `${insertedItems.length} item(s) added successfully!`,
       user: user.name,
+      insertedCount: insertedItems.length,
+      skippedCount: invalidRows.length,
+      invalidRows,
     });
   } catch (error) {
     console.error("uploadExcelItems error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Server error while uploading Excel items.",
     });
   }
 };
-
 export const findRole = async (req, res) => {
   try {
     const { token } = req.body;
@@ -780,27 +951,29 @@ export const getThrashItem = async (req, res) => {
   try {
     const { itemId } = req.body;
 
-    // ID check
     if (!itemId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Item ID is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Item ID is required",
+      });
     }
+
     if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid item ID" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid item ID",
+      });
     }
 
-    // Find trash item
     const thrashItem = await thrashItemModel.findById(itemId).lean();
+
     if (!thrashItem) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Trash item not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Trash item not found",
+      });
     }
 
-    // Prepare response data
     const itemData = {
       id: thrashItem._id,
       name: thrashItem.name,
@@ -814,6 +987,7 @@ export const getThrashItem = async (req, res) => {
       location: thrashItem.location,
       isFrequentlyUsed: thrashItem.isFrequentlyUsed,
       description: thrashItem.description || "",
+      relatedBoards: thrashItem.relatedBoards || [],
       addedOn: thrashItem.addedOn,
       addedBy: thrashItem.addedBy,
       lastUpdatedOn: thrashItem.lastUpdatedOn,

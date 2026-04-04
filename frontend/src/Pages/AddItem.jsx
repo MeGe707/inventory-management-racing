@@ -29,8 +29,49 @@ const COMPONENT_OPTIONS = [
   "Isolator",
   "OPAMP",
   "OTHER",
-
 ];
+
+const BOARD_OPTIONS = [
+  "TSALINV",
+  "BMSMASTER",
+  "BMSCONT",
+  "BMSCARR",
+  "BSPD",
+  "LATCH",
+  "PRECHARGE",
+  "BUCK_CONVERTER",
+  "VOLTAGE_INDICATOR",
+  "STLINK",
+  "TSALBAT",
+  "LVBMS",
+  "TMS",
+  "IMU",
+  "GPS",
+  "VCU",
+  "BP",
+  "TELEMETRI",
+];
+
+const BOARD_LABELS = {
+  TSALINV: "TSalINV",
+  BMSMASTER: "BMSMaster",
+  BMSCONT: "BMSCont",
+  BMSCARR: "BMSCarr",
+  BSPD: "BSPD",
+  LATCH: "LATCH",
+  PRECHARGE: "Precharge",
+  BUCK_CONVERTER: "Buck Converter",
+  VOLTAGE_INDICATOR: "Voltage Indicator",
+  STLINK: "STLINK",
+  TSALBAT: "TSALBat",
+  LVBMS: "LVBMS",
+  TMS: "TMS",
+  IMU: "IMU",
+  GPS: "GPS",
+  VCU: "VCU",
+  BP: "BP",
+  TELEMETRI: "Telemetri",
+};
 
 const Label = ({ htmlFor, children, required }) => (
   <label htmlFor={htmlFor} className="text-sm font-medium text-gray-700">
@@ -82,6 +123,7 @@ export default function AddItem() {
     location: "",
     isFrequentlyUsed: false,
     description: "",
+    relatedBoards: [],
   });
 
   const [errors, setErrors] = useState({});
@@ -102,6 +144,7 @@ export default function AddItem() {
 
   const validate = () => {
     const e = {};
+
     requiredFields.forEach((k) => {
       if (
         form[k] === "" ||
@@ -114,6 +157,7 @@ export default function AddItem() {
 
     if (Number(form.quantity) < 1) e.quantity = "Quantity must be at least 1.";
     if (Number(form.price) < 0) e.price = "Price cannot be less than 0.";
+    if (Number(form.threshold) < 0) e.threshold = "Threshold cannot be less than 0.";
     if (!form.component) e.component = "This field is required.";
 
     setErrors(e);
@@ -122,18 +166,33 @@ export default function AddItem() {
 
   const onChange = (key) => (e) => {
     const val = e.target.value;
+
     setForm((prev) => ({
       ...prev,
       [key]:
-        key === "quantity" || key === "price"
+        key === "quantity" || key === "price" || key === "threshold"
           ? val === ""
             ? ""
             : Number(val)
           : val,
     }));
+
     if (errors[key]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
     }
+  };
+
+  const handleBoardToggle = (board) => {
+    setForm((prev) => {
+      const exists = prev.relatedBoards.includes(board);
+
+      return {
+        ...prev,
+        relatedBoards: exists
+          ? prev.relatedBoards.filter((b) => b !== board)
+          : [...prev.relatedBoards, board],
+      };
+    });
   };
 
   const resetForm = () =>
@@ -149,6 +208,7 @@ export default function AddItem() {
       isFrequentlyUsed: false,
       location: "",
       description: "",
+      relatedBoards: [],
     });
 
   const onSubmitHandler = async (e) => {
@@ -165,18 +225,23 @@ export default function AddItem() {
         supplierName: form.supplierName.trim(),
         serialNumber: form.serialNumber.trim(),
         quantity: Number(form.quantity),
-        threshold: Number(form.threshold),
-        price: Number(form.price),
+        threshold:
+          form.threshold === "" || form.threshold == null
+            ? undefined
+            : Number(form.threshold),
+        price:
+          form.price === "" || form.price == null
+            ? undefined
+            : Number(form.price),
         isFrequentlyUsed: form.isFrequentlyUsed,
         location: form.location.trim(),
         description: form.description.trim(),
+        relatedBoards: form.relatedBoards,
       };
 
-
-
-const { data } = await axios.post(`${link}/user/add-item`, payload, {
-  withCredentials: true
-});
+      const { data } = await axios.post(`${link}/user/add-item`, payload, {
+        withCredentials: true,
+      });
 
       if (data.success) {
         toast.success(data.message || "Item added successfully.");
@@ -202,11 +267,11 @@ const { data } = await axios.post(`${link}/user/add-item`, payload, {
       </div>
 
       <div className="bg-white px-6 py-7 border rounded-2xl shadow-sm">
-        {/* Section: Core info */}
         <div className="mb-6">
           <h3 className="mb-3 text-base font-semibold text-gray-800">
             Item Information
           </h3>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <Label htmlFor="name" required>
@@ -231,13 +296,16 @@ const { data } = await axios.post(`${link}/user/add-item`, payload, {
                 <select
                   id="component"
                   value={form.component}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, component: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, component: e.target.value }));
+                    if (errors.component) {
+                      setErrors((prev) => ({ ...prev, component: undefined }));
+                    }
+                  }}
                   required
                   className={`w-full appearance-none rounded-xl border px-3 py-2 pr-9 outline-none transition
-        focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
-        ${errors.component ? "border-red-400" : "border-gray-300"}`}
+                  focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                  ${errors.component ? "border-red-400" : "border-gray-300"}`}
                 >
                   <option value="" disabled>
                     Select…
@@ -249,7 +317,6 @@ const { data } = await axios.post(`${link}/user/add-item`, payload, {
                   ))}
                 </select>
 
-                {/* Chevron Icon */}
                 <svg
                   className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
                   xmlns="http://www.w3.org/2000/svg"
@@ -327,11 +394,34 @@ const { data } = await axios.post(`${link}/user/add-item`, payload, {
           </div>
         </div>
 
-        {/* Section: Inventory & Price */}
+        <div className="mb-6">
+          <h3 className="mb-3 text-base font-semibold text-gray-800">
+            Related Boards
+          </h3>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {BOARD_OPTIONS.map((board) => (
+              <label
+                key={board}
+                className="flex items-center gap-2 text-sm text-gray-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.relatedBoards.includes(board)}
+                  onChange={() => handleBoardToggle(board)}
+                  className="w-4 h-4"
+                />
+                <span>{BOARD_LABELS[board] || board}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         <div className="mb-6">
           <h3 className="mb-3 text-base font-semibold text-gray-800">
             Stock & Price
           </h3>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
               <Label htmlFor="quantity" required>
@@ -382,7 +472,7 @@ const { data } = await axios.post(`${link}/user/add-item`, payload, {
                 min={0}
                 step={1}
                 required
-                error={errors.quantity}
+                error={errors.threshold}
               />
             </div>
 
@@ -398,12 +488,9 @@ const { data } = await axios.post(`${link}/user/add-item`, payload, {
                 error={errors.price}
               />
             </div>
-
-            <div className="hidden md:block" />
           </div>
         </div>
 
-        {/* Section: Description */}
         <div className="mb-2">
           <h3 className="mb-3 text-base font-semibold text-gray-800">
             Description
@@ -416,7 +503,6 @@ const { data } = await axios.post(`${link}/user/add-item`, payload, {
           />
         </div>
 
-        {/* Footer buttons */}
         <div className="mt-6 flex justify-end">
           <button
             type="submit"
